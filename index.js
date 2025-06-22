@@ -1,2 +1,2 @@
-import SwaggerParser from 'swagger-parser';
+import * as SwaggerParser from "@apidevtools/swagger-parser";
 window.SwaggerParser = SwaggerParser;
