@@ -389,15 +389,15 @@ function renderJsonSchemaObject(schema) {
         objectRendering += ' or ';
       }
     }
+  } else if(schema.type === 'string') {
+    objectRendering = 'a string';
   } else if(schema.type === 'object') {
     if(!schema.properties) {
-      if(schema.description) {
-        objectRendering = schema.description.replace(/\.$/, "") +
-          ' (an object)';
-      } else {
-        objectRendering = 'an object';
-      }
+      objectRendering = 'an object';
     } else {
+      if(objectRendering.length < 1 && schema.description) {
+        objectRendering += schema.description + ' It MUST be ';
+      }
       objectRendering += 'an object of the following form: <dl>';
       for(const property in schema.properties) {
         const value = schema.properties[property];
@@ -418,7 +418,7 @@ function renderJsonSchemaProperty(property, value) {
     propertyRendering += ` [${value.type}]`;
   }
   propertyRendering += '</dt><dd>';
-  if(value.description) {
+  if(value.type !== 'object' && value.description) {
     propertyRendering += `${value.description} `;
   }
 
@@ -448,8 +448,6 @@ function renderJsonSchemaValue(property, value) {
       valueRendering += renderJsonSchemaObject(schemaItem);
     }
   } else if(value.type === 'object') {
-    valueRendering =
-      `The <code>${property}</code> object MUST be `;
     valueRendering += renderJsonSchemaObject(value);
   } else if(value.type === 'string' || value.type === 'integer' ||
     value.type === 'boolean') {
