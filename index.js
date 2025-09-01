@@ -103,6 +103,9 @@ function buildEndpointDetails({document, apis}) {
       if(requestSchema.anyOf) {
         schemaSummary.innerHTML = `The ${path} endpoint uses any of ` +
         `the following schemas when receiving a `;
+      } else if(requestSchema.oneOf) {
+        schemaSummary.innerHTML = `The ${path} endpoint uses one of ` +
+        `the following schemas when receiving a `;
       } else {
         schemaSummary.innerHTML = `The ${path} endpoint uses ` +
         `the following schema when receiving a `;
@@ -119,6 +122,19 @@ function buildEndpointDetails({document, apis}) {
               renderJsonSchema(anySchema.properties || anySchema);
             section.appendChild(requestSchemaHtml);
             if(i + 1 < requestSchema.anyOf.length) {
+              const nextSchemaSummary = document.createElement('p');
+              nextSchemaSummary.innerHTML = `Alternatively, the ${path} ` +
+              `endpoint can also use the following schema:`;
+              section.appendChild(nextSchemaSummary);
+            }
+          }
+        } else if(requestSchema.oneOf) {
+          for(const i in requestSchema.oneOf) {
+            const anySchema = requestSchema.oneOf[i];
+            requestSchemaHtml =
+              renderJsonSchema(anySchema.properties || anySchema);
+            section.appendChild(requestSchemaHtml);
+            if(i + 1 < requestSchema.oneOf.length) {
               const nextSchemaSummary = document.createElement('p');
               nextSchemaSummary.innerHTML = `Alternatively, the ${path} ` +
               `endpoint can also use the following schema:`;
@@ -252,9 +268,23 @@ function renderJsonSchema(schema) {
         } else if(property === 'allOf') {
           propertyRendering = 'All of';
           valueRendering += ' and ';
+        } else if(property === 'oneOf') {
+          propertyRendering = 'One of';
+          valueRendering += ' or ';
         } else {
           propertyRendering = 'Any of';
           valueRendering += ' or ';
+        }
+        valueRendering += renderJsonSchemaObject(schemaItem);
+      }
+    } else if(Array.isArray(subSchema.oneOf)) {
+      for(const i in subSchema.oneOf) {
+        const schemaItem = subSchema.oneOf[i];
+        propertyRendering = 'One of';
+        if(i < 1) {
+          valueRendering = '';
+        } else {
+          valueRendering = ' or ';
         }
         valueRendering += renderJsonSchemaObject(schemaItem);
       }
@@ -295,6 +325,18 @@ function renderJsonSchemaObject(schema) {
     }
     return collectedSchemas;
   }
+  if(schema.oneOf) {
+    let collectedSchemas = '';
+    for(const index in schema.oneOf) {
+      const item = schema.oneOf[index];
+      collectedSchemas += renderJsonSchemaObject(item);
+      // if there are more items in anyOf add an or
+      if((index + 1) < schema.oneOf.length) {
+        collectedSchemas += ' or ';
+      }
+    }
+    return collectedSchemas;
+  }
   if(schema.allOf) {
     const mergedSchema = {
       type: 'object',
@@ -327,6 +369,26 @@ function renderJsonSchemaObject(schema) {
         objectRendering += ' or ';
       }
     }
+  } else if(schema.anyOf) {
+    objectRendering += ' either ';
+    let itemCount = 0;
+    for(const item of schema.anyOf) {
+      if(item.type === 'string') {
+        objectRendering += 'a string';
+      } else if(item.type === 'object') {
+        objectRendering += renderJsonSchemaObject(item);
+      } else if(item.type === 'array') {
+        objectRendering += 'an array';
+        if(item.items) {
+          objectRendering += ` of ${item.items.type}(s)`;
+        }
+      }
+
+      itemCount += 1;
+      if(itemCount < schema.anyOf.length) {
+        objectRendering += ' or ';
+      }
+    }
   } else if(schema.type === 'object') {
     if(!schema.properties) {
       if(schema.description) {
@@ -351,10 +413,16 @@ function renderJsonSchemaObject(schema) {
 }
 
 function renderJsonSchemaProperty(property, value) {
-  let propertyRendering = `<dt><code>${property}</code> [${value.type}]</dt>`;
-  propertyRendering += '<dd>' + value.description + ' ' +
-    renderJsonSchemaValue(property, value) + '</dd>';
+  let propertyRendering = `<dt><code>${property}</code>`
+  if(value.type) {
+    propertyRendering += ` [${value.type}]`;
+  }
+  propertyRendering += '</dt><dd>';
+  if(value.description) {
+    propertyRendering += `${value.description} `;
+  }
 
+  propertyRendering += renderJsonSchemaValue(property, value) + '</dd>';
   return propertyRendering;
 }
 
@@ -369,6 +437,15 @@ function renderJsonSchemaValue(property, value) {
       valueRendering += 'a string.';
     } else {
       valueRendering += `a ${value.items.type}:`;
+    }
+  } else if(Array.isArray(value.oneOf)) {
+    valueRendering = 'Either ';
+    for(const i in value.oneOf) {
+      const schemaItem = value.oneOf[i];
+      if(i > 0) {
+        valueRendering += ' or ';
+      }
+      valueRendering += renderJsonSchemaObject(schemaItem);
     }
   } else if(value.type === 'object') {
     valueRendering =
