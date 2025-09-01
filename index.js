@@ -38,6 +38,8 @@ function buildComponentTables({document, apis}) {
           const tableRow = document.createElement('tr');
           if(expectedCaller === undefined) {
             expectedCaller = "Expected Caller Undefined";
+          } else if(Array.isArray(expectedCaller)) {
+            expectedCaller = expectedCaller.join(', ');
           }
           tableRow.innerHTML = `<td>${verb.toUpperCase()}&nbsp;${path}</td>` +
             `<td>${expectedCaller}</td>`;
