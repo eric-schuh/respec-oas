@@ -42,10 +42,10 @@ function buildComponentTables({document, apis}) {
           } else if(Array.isArray(expectedCallerIn)) {
             // Need to handle the special case where the same endpoint is listed on multiple components.
             // This could be removed if we changed the yaml to have more specific x- arguments, but it's not clear if that is worth the overhead.
-            // Currently two endpoints have conflics: GET /credentials/{id}, DELETE /credentials/{id}
-            //     These two endpoints both exist on the Issuer and Holder Services, having only one x-expectedCaller list means that
-            //     both of these endpoints have the set x-expectedCaller: [Issuer Coordinator, Holder Coordinator, Workflow Service]
-            //     the below code is removing "Issuer Coordinator" for the Holder Service component, and "Holder Coordinator", for the Issuer Service component.
+            // Currently two endpoints have conflicts: GET /credentials/{id}, DELETE /credentials/{id}
+            //     These two endpoints both exist on the Issuer and Holder Services. Having only one x-expectedCaller list means that
+            //     both of these endpoints have "set x-expectedCaller: [Issuer Coordinator, Holder Coordinator, Workflow Service]".
+            //     The code below is removing "Issuer Coordinator" from the Holder Service component, and "Holder Coordinator" from the Issuer Service component.
             if(table.parentElement.id === "issuer-service" && path == "/credentials/{id}"){
               expectedCallerOut.splice(1,1);
             }
